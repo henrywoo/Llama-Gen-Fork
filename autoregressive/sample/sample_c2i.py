@@ -1,5 +1,6 @@
 # Modified from:
 #   DiT:  https://github.com/facebookresearch/DiT/blob/main/sample.py
+import os, json
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -13,6 +14,18 @@ import argparse
 from tokenizer.tokenizer_image.vq_model import VQ_models
 from autoregressive.models.gpt import GPT_models
 from autoregressive.models.generate import generate
+from hiq.vis import print_model
+
+
+# Function to load ImageNet class names
+def load_imagenet_class_names(json_path="imagenet_class_index.json"):
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"{json_path} does not exist.")
+    with open(json_path, 'r') as f:
+        class_idx = json.load(f)
+    idx_to_class = {int(key): value[1] for key, value in class_idx.items()}
+    return idx_to_class
+
 
 
 def main(args):
@@ -33,6 +46,7 @@ def main(args):
     vq_model.load_state_dict(checkpoint["model"])
     del checkpoint
     print(f"image tokenizer is loaded")
+    print_model(vq_model)
 
     # create and load gpt model
     precision = {'none': torch.float32, 'bf16': torch.bfloat16, 'fp16': torch.float16}[args.precision]
@@ -60,6 +74,7 @@ def main(args):
     #     model_weight.pop('freqs_cis')
     gpt_model.load_state_dict(model_weight, strict=False)
     gpt_model.eval()
+    print_model(gpt_model)
     del checkpoint
     print(f"gpt model is loaded")
 
@@ -75,6 +90,9 @@ def main(args):
 
     # Labels to condition the model with (feel free to change):
     class_labels = [207, 360, 387, 974, 88, 979, 417, 279]
+    idx_to_class = load_imagenet_class_names()
+    for i in class_labels:
+        print(i, idx_to_class[i])
     c_indices = torch.tensor(class_labels, device=device)
     qzshape = [len(class_labels), args.codebook_embed_dim, latent_size, latent_size]
 

@@ -3,3 +3,11 @@ torchvision
 gradio
 huggingface-hub
 vllm
+
+ftfy
+bs4
+pandas
+accelerate
+sentencepiece
+transformers
+
